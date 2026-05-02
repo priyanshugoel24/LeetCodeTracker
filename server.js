@@ -178,6 +178,28 @@ app.post("/api/problem/:slug/tags", (req, res) => {
   }
 });
 
+// ➖ Remove a single user tag from a problem
+app.post("/api/problem/:slug/tag/remove", (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const { tag } = req.body;
+    if (!tag) return res.status(400).json({ success: false, error: "tag is required" });
+
+    const data = fs.readFileSync("data.json", "utf-8");
+    const problems = JSON.parse(data || "[]");
+    const idx = problems.findIndex((p) => p.titleSlug === slug);
+    if (idx === -1) return res.status(404).json({ success: false, error: "Problem not found" });
+
+    const existing = problems[idx].userTags || [];
+    const updated = existing.filter((t) => t !== tag);
+    problems[idx].userTags = updated;
+    fs.writeFileSync("data.json", JSON.stringify(problems, null, 2));
+    res.json({ success: true, userTags: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 📈 Progress history: returns recorded snapshots
 app.get("/api/progress", (req, res) => {
   try {

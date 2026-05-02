@@ -258,7 +258,9 @@ function renderTable(problems) {
       : "";
 
     // user tags and favorite
-    const userTags = (p.userTags || []).map((t) => `<span class="topic-tag user-tag">${t}</span>`).join("");
+    const userTags = (p.userTags || [])
+      .map((t) => `<span class="topic-tag user-tag" data-tag="${t}" data-slug="${p.titleSlug}">${t}<span class="tag-remove" data-tag="${t}" data-slug="${p.titleSlug}">✕</span></span>`)
+      .join("");
     const isFav = !!p.isInMyFavorites;
 
     const favHtml = `<button class="fav-btn" data-slug="${p.titleSlug}" aria-label="favorite">${isFav ? "★" : "☆"}</button>`;
@@ -331,6 +333,82 @@ function renderTable(problems) {
       }
     });
   });
+
+    // Remove tag handler
+    document.querySelectorAll(".tag-remove").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const slug = btn.getAttribute("data-slug");
+        const tag = btn.getAttribute("data-tag");
+        if (!confirm(`Remove tag '${tag}'?`)) return;
+        try {
+          const res = await fetch(`/api/problem/${slug}/tag/remove`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tag }),
+          });
+          const j = await res.json();
+          if (j.success) {
+            const p = allProblems.find((x) => x.titleSlug === slug);
+            if (p) p.userTags = j.userTags;
+            filterTable();
+          } else {
+            alert(j.error || "Could not remove tag");
+          }
+        } catch (err) {
+          alert("Error removing tag: " + err.message);
+        }
+      });
+    });
+
+    // Inline edit: double-click a user-tag to edit
+    document.querySelectorAll(".user-tag").forEach((el) => {
+      el.addEventListener("dblclick", (e) => {
+        const slug = el.getAttribute("data-slug");
+        const tag = el.getAttribute("data-tag");
+        const input = document.createElement("input");
+        input.className = "tag-edit-input";
+        input.value = tag;
+        input.style.minWidth = "80px";
+        el.replaceWith(input);
+        input.focus();
+
+        const finish = async () => {
+          const newVal = input.value.trim();
+          // find problem and update tags
+          const p = allProblems.find((x) => x.titleSlug === slug);
+          if (!p) return;
+          const existing = p.userTags || [];
+          const updated = existing.map((t) => (t === tag ? newVal : t)).filter(Boolean);
+          try {
+            const res = await fetch(`/api/problem/${slug}/tags`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ tags: updated }),
+            });
+            const j = await res.json();
+            if (j.success) {
+              p.userTags = j.userTags;
+              filterTable();
+            } else {
+              alert(j.error || "Could not update tag");
+            }
+          } catch (err) {
+            alert("Error updating tag: " + err.message);
+          }
+        };
+
+        input.addEventListener("blur", finish);
+        input.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter") {
+            input.blur();
+          } else if (ev.key === "Escape") {
+            // cancel: restore
+            filterTable();
+          }
+        });
+      });
+    });
 }
 
 // --- Progress Chart functions ---
