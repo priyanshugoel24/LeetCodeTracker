@@ -36,7 +36,7 @@ body {
 
 /* Header */
 .header {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82));
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 24px;
   padding: 28px 30px;
@@ -170,7 +170,7 @@ body {
   border-radius: 22px;
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
-  min-height: 420px;
+  min-height: 320px;
 }
 
 .chart-container h3 {
@@ -247,7 +247,15 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
+
+/* column widths to avoid excessive empty space on the right */
+th:nth-child(1), td:nth-child(1) { width: 56px; }
+th:nth-child(2), td:nth-child(2) { width: 28%; }
+th:nth-child(3), td:nth-child(3) { width: 12%; }
+th:nth-child(4), td:nth-child(4) { width: 12%; }
+th:nth-child(5), td:nth-child(5) { width: 32%; }
 
 thead {
   background: rgba(17, 24, 39, 0.04);
@@ -418,6 +426,7 @@ tr:hover {
 
   .table-container {
     font-size: 0.9em;
+    overflow-x: auto;
   }
 
   th,
@@ -447,6 +456,25 @@ tr:hover {
   --muted: #9fb0c8;
   --shadow: none;
   --accent: #8ab4ff;
+}
+
+/* Dark-mode specific tweaks for header and buttons */
+.dark .header {
+  background: linear-gradient(180deg, rgba(6,10,18,0.9), rgba(8,12,20,0.85));
+  border-color: rgba(255,255,255,0.04);
+}
+
+.dark .btn-secondary {
+  background: rgba(255,255,255,0.03);
+  color: var(--text);
+}
+
+.dark th {
+  background: rgba(255,255,255,0.02);
+}
+
+.dark tr:hover {
+  background: rgba(255,255,255,0.02);
 }
 
   .stat-card {
