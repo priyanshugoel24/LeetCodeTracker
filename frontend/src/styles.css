@@ -1,0 +1,240 @@
+:root {
+  --bg: #f5f5f0;
+  --surface: rgba(255, 255, 255, 0.92);
+  --border: rgba(31, 41, 55, 0.08);
+  --text: #1f2937;
+  --muted: #6b7280;
+  --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --easy: #2f9e44;
+  --medium: #f08c00;
+  --hard: #e03131;
+  --accent: #4f46e5;
+}
+
+.dark {
+  --bg: #071029;
+  --surface: rgba(8, 12, 20, 0.9);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #e6eef8;
+  --muted: #9fb0c8;
+  --shadow: none;
+  --accent: #8ab4ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 24px;
+}
+
+.container {
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.header,
+.stat-card,
+.chart-container,
+.problems-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+.header {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.btn-secondary {
+  background: rgba(17, 24, 39, 0.06);
+}
+
+.stats-grid,
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  padding: 20px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.stat-value.easy { color: var(--easy); }
+.stat-value.medium { color: var(--medium); }
+.stat-value.hard { color: var(--hard); }
+.stat-label { color: var(--muted); }
+
+.chart-container {
+  padding: 20px;
+}
+
+.problems-section {
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.filter-group {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.search-box,
+.filter-select,
+.tag-input {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.dark .search-box,
+.dark .filter-select,
+.dark .tag-input {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.table-container {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  padding: 12px;
+}
+
+th:nth-child(1), td:nth-child(1) { width: 56px; }
+th:nth-child(2), td:nth-child(2) { width: 28%; }
+th:nth-child(3), td:nth-child(3) { width: 12%; }
+th:nth-child(4), td:nth-child(4) { width: 12%; }
+
+.pill {
+  display: inline-flex;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.pill.difficulty-easy { background: rgba(47, 158, 68, 0.12); color: var(--easy); }
+.pill.difficulty-medium { background: rgba(240, 140, 0, 0.12); color: var(--medium); }
+.pill.difficulty-hard { background: rgba(224, 49, 49, 0.12); color: var(--hard); }
+
+.topics {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.topic-tag {
+  background: rgba(79, 70, 229, 0.1);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.user-tag {
+  background: rgba(250, 230, 200, 0.15);
+  cursor: pointer;
+}
+
+.tag-remove {
+  margin-left: 8px;
+  color: #555;
+}
+
+.tag-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tag-add-btn,
+.fav-btn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.subtitle,
+.last-updated {
+  color: var(--muted);
+}
+
+.progress-card {
+  margin-top: 20px;
+}
+
+.progress-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  body { padding: 12px; }
+  .header-content { align-items: flex-start; }
+  .filter-group { flex-direction: column; }
+  .search-box,
+  .filter-select {
+    width: 100%;
+  }
+}

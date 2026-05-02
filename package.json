@@ -5,6 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "node server.js",
+    "client:dev": "npm --prefix frontend run dev",
+    "client:build": "npm --prefix frontend run build",
+    "build": "npm run client:build",
     "fetch": "node -e \"require('./fetcherService').fetchProblemsManual()\"",
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"

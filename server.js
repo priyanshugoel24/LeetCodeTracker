@@ -6,6 +6,8 @@ const { startScheduler, fetchProblemsManual } = require("./fetcherService");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CREDENTIALS_FILE = ".credentials.json";
+const REACT_DIST_DIR = path.join(__dirname, "frontend", "dist");
+const LEGACY_PUBLIC_DIR = path.join(__dirname, "public");
 
 function normalizeDifficulty(value) {
   if (!value) return "Unknown";
@@ -30,10 +32,15 @@ function saveCredentials(session, csrf) {
   fs.writeFileSync(CREDENTIALS_FILE, JSON.stringify({ session, csrf }, null, 2));
 }
 
-app.use(express.static("public"));
 app.use(express.json());
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "public"));
+
+// Serve static assets from both legacy public/ and React build when available.
+app.use(express.static(LEGACY_PUBLIC_DIR, { index: false }));
+if (fs.existsSync(REACT_DIST_DIR)) {
+  app.use(express.static(REACT_DIST_DIR, { index: false }));
+}
 
 // 📊 API: Get all problems
 app.get("/api/problems", (req, res) => {
@@ -268,7 +275,10 @@ app.post("/api/fetch", async (req, res) => {
 
 // 📄 Main dashboard
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  if (fs.existsSync(path.join(REACT_DIST_DIR, "index.html"))) {
+    return res.sendFile(path.join(REACT_DIST_DIR, "index.html"));
+  }
+  return res.sendFile(path.join(LEGACY_PUBLIC_DIR, "index.html"));
 });
 
 app.get("/health", (req, res) => {
@@ -307,6 +317,18 @@ app.post("/admin/update-credentials", (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// React SPA fallback for non-API routes except admin.
+app.get("*", (req, res, next) => {
+  if (req.path.startsWith("/api") || req.path.startsWith("/admin") || req.path === "/health") {
+    return next();
+  }
+  const indexPath = path.join(REACT_DIST_DIR, "index.html");
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  return next();
 });
 
 function getLastUpdated() {
