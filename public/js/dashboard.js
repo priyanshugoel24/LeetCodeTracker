@@ -19,6 +19,10 @@ function setupEventListeners() {
 
   const darkToggle = document.getElementById("darkModeToggle");
   if (darkToggle) darkToggle.addEventListener("click", toggleDarkMode);
+  const recordBtn = document.getElementById("recordSnapshot");
+  if (recordBtn) recordBtn.addEventListener("click", recordSnapshot);
+  const loadBtn = document.getElementById("loadProgress");
+  if (loadBtn) loadBtn.addEventListener("click", loadProgressChart);
 }
 
 async function loadData() {
@@ -253,15 +257,130 @@ function renderTable(problems) {
           .join("")
       : "";
 
+    // user tags and favorite
+    const userTags = (p.userTags || []).map((t) => `<span class="topic-tag user-tag">${t}</span>`).join("");
+    const isFav = !!p.isInMyFavorites;
+
+    const favHtml = `<button class="fav-btn" data-slug="${p.titleSlug}" aria-label="favorite">${isFav ? "★" : "☆"}</button>`;
+
     row.innerHTML = `
+      <td style="width:56px">${favHtml}</td>
       <td><strong>${p.title}</strong><div class="subtitle">${p.titleSlug}</div></td>
       <td><span class="pill ${difficultyClass}">${difficultyLabel}</span></td>
       <td>${(Number(p.acRate) * 100).toFixed(2)}%</td>
-      <td><div class="topics">${topics}</div></td>
+      <td>
+        <div class="topics">${topics} ${userTags}</div>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <input class="tag-input" data-slug="${p.titleSlug}" placeholder="Add tag" />
+          <button class="tag-add-btn" data-slug="${p.titleSlug}">Add</button>
+        </div>
+      </td>
     `;
 
     tbody.appendChild(row);
   });
+
+  // Attach event listeners for favorite and tag actions
+  document.querySelectorAll(".fav-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const slug = btn.getAttribute("data-slug");
+      try {
+        const res = await fetch(`/api/problem/${slug}/favorite`, { method: "POST" });
+        const j = await res.json();
+        if (j.success) {
+          btn.textContent = j.isFavorite ? "★" : "☆";
+          // update local data
+          const p = allProblems.find((x) => x.titleSlug === slug);
+          if (p) p.isInMyFavorites = j.isFavorite;
+        } else {
+          alert(j.error || "Could not toggle favorite");
+        }
+      } catch (err) {
+        alert("Error toggling favorite: " + err.message);
+      }
+    });
+  });
+
+  document.querySelectorAll(".tag-add-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const slug = btn.getAttribute("data-slug");
+      const input = document.querySelector(`.tag-input[data-slug=\"${slug}\"]`);
+      if (!input) return;
+      const val = input.value.trim();
+      if (!val) return;
+      // merge with existing userTags
+      const p = allProblems.find((x) => x.titleSlug === slug);
+      const newTags = Array.from(new Set([...(p.userTags || []), val]));
+      try {
+        const res = await fetch(`/api/problem/${slug}/tags`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tags: newTags }),
+        });
+        const j = await res.json();
+        if (j.success) {
+          input.value = "";
+          // update local data and re-render
+          if (p) p.userTags = j.userTags;
+          filterTable();
+        } else {
+          alert(j.error || "Could not set tags");
+        }
+      } catch (err) {
+        alert("Error setting tags: " + err.message);
+      }
+    });
+  });
+}
+
+// --- Progress Chart functions ---
+async function recordSnapshot() {
+  try {
+    const res = await fetch(`/api/progress/record`, { method: "POST" });
+    const j = await res.json();
+    if (j.success) {
+      alert(`Snapshot recorded for ${j.snapshot.date}`);
+      loadProgressChart();
+    } else {
+      alert(j.error || "Could not record snapshot");
+    }
+  } catch (err) {
+    alert("Error recording snapshot: " + err.message);
+  }
+}
+
+async function loadProgressChart() {
+  try {
+    const res = await fetch(`/api/progress`);
+    const history = await res.json();
+    const labels = history.map((h) => h.date);
+    const totals = history.map((h) => h.total);
+
+    const ctx = document.getElementById("progressChart").getContext("2d");
+    if (charts.progress) charts.progress.destroy();
+    charts.progress = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Total Solved",
+            data: totals,
+            borderColor: "#4f46e5",
+            backgroundColor: "rgba(79,70,229,0.12)",
+            fill: true,
+            tension: 0.2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+  } catch (err) {
+    console.error("Error loading progress:", err);
+  }
 }
 
 function clearFilters() {

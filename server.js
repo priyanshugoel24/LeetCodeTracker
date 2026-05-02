@@ -140,6 +140,99 @@ app.get("/api/export", (req, res) => {
   }
 });
 
+// ✅ Toggle favorite for a problem
+app.post("/api/problem/:slug/favorite", (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const data = fs.readFileSync("data.json", "utf-8");
+    const problems = JSON.parse(data || "[]");
+    const idx = problems.findIndex((p) => p.titleSlug === slug);
+    if (idx === -1) return res.status(404).json({ success: false, error: "Problem not found" });
+
+    problems[idx].isInMyFavorites = !problems[idx].isInMyFavorites;
+    fs.writeFileSync("data.json", JSON.stringify(problems, null, 2));
+    res.json({ success: true, isFavorite: problems[idx].isInMyFavorites });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 🏷️ Set tags for a problem (replace user's tags)
+app.post("/api/problem/:slug/tags", (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const { tags } = req.body;
+    if (!Array.isArray(tags)) return res.status(400).json({ success: false, error: "tags must be an array" });
+
+    const data = fs.readFileSync("data.json", "utf-8");
+    const problems = JSON.parse(data || "[]");
+    const idx = problems.findIndex((p) => p.titleSlug === slug);
+    if (idx === -1) return res.status(404).json({ success: false, error: "Problem not found" });
+
+    // store user tags in `userTags` field (array of strings)
+    problems[idx].userTags = tags.map((t) => String(t).trim()).filter(Boolean);
+    fs.writeFileSync("data.json", JSON.stringify(problems, null, 2));
+    res.json({ success: true, userTags: problems[idx].userTags });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 📈 Progress history: returns recorded snapshots
+app.get("/api/progress", (req, res) => {
+  try {
+    const file = "progress_history.json";
+    if (!fs.existsSync(file)) return res.json([]);
+    const raw = fs.readFileSync(file, "utf-8");
+    const history = JSON.parse(raw || "[]");
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 📝 Record a snapshot of current solved count (date, total, byDifficulty)
+app.post("/api/progress/record", (req, res) => {
+  try {
+    const data = fs.readFileSync("data.json", "utf-8");
+    const problems = JSON.parse(data || "[]");
+    const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    const byDifficulty = problems.reduce((acc, p) => {
+      const d = normalizeDifficulty(p.difficulty);
+      if (d === "EASY") acc.Easy += 1;
+      else if (d === "MEDIUM") acc.Medium += 1;
+      else if (d === "HARD") acc.Hard += 1;
+      return acc;
+    }, { Easy: 0, Medium: 0, Hard: 0 });
+
+    const snapshot = {
+      date,
+      total: problems.length,
+      byDifficulty,
+    };
+
+    const file = "progress_history.json";
+    let history = [];
+    if (fs.existsSync(file)) {
+      history = JSON.parse(fs.readFileSync(file, "utf-8") || "[]");
+      // prevent duplicate date entries
+      if (history.length > 0 && history[history.length - 1].date === date) {
+        history[history.length - 1] = snapshot;
+      } else {
+        history.push(snapshot);
+      }
+    } else {
+      history = [snapshot];
+    }
+
+    fs.writeFileSync(file, JSON.stringify(history, null, 2));
+    res.json({ success: true, snapshot });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 🔄 API: Manual fetch
 app.post("/api/fetch", async (req, res) => {
   try {

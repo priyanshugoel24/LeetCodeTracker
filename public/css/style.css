@@ -321,6 +321,29 @@ tr:hover {
   font-size: 0.85em;
 }
 
+.user-tag {
+  background: rgba(250, 230, 200, 0.12);
+  color: var(--text);
+}
+
+.fav-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.tag-input {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.tag-add-btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+}
+
 .subtitle {
   margin-top: 4px;
   font-size: 0.8em;

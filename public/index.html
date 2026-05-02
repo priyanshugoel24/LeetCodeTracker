@@ -88,14 +88,26 @@
           <table id="problemsTable">
             <thead>
               <tr>
+                <th>Fav</th>
                 <th>Title</th>
                 <th>Difficulty</th>
                 <th>Acceptance Rate</th>
-                <th>Topics</th>
+                <th>Topics / Tags</th>
               </tr>
             </thead>
             <tbody id="problemsBody"></tbody>
           </table>
+        </div>
+      </section>
+
+      <section class="charts-section">
+        <div class="chart-container">
+          <h3>Solved Over Time</h3>
+          <canvas id="progressChart"></canvas>
+          <div style="margin-top:12px; display:flex; gap:8px;">
+            <button id="recordSnapshot" class="btn btn-secondary">Record Snapshot</button>
+            <button id="loadProgress" class="btn btn-secondary">Load Progress</button>
+          </div>
         </div>
       </section>
     </div>
