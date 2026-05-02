@@ -5,13 +5,33 @@ const { startScheduler, fetchProblemsManual } = require("./fetcherService");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const CREDENTIALS_FILE = ".credentials.json";
 
 function normalizeDifficulty(value) {
   if (!value) return "Unknown";
   return String(value).trim().toUpperCase();
 }
 
+function getCredentials() {
+  try {
+    if (fs.existsSync(CREDENTIALS_FILE)) {
+      return JSON.parse(fs.readFileSync(CREDENTIALS_FILE, "utf-8"));
+    }
+  } catch (err) {
+    console.warn("Could not read credentials file:", err.message);
+  }
+  return {
+    session: process.env.LEETCODE_SESSION || "",
+    csrf: process.env.CSRF_TOKEN || "",
+  };
+}
+
+function saveCredentials(session, csrf) {
+  fs.writeFileSync(CREDENTIALS_FILE, JSON.stringify({ session, csrf }, null, 2));
+}
+
 app.use(express.static("public"));
+app.use(express.json());
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "public"));
 
@@ -100,6 +120,40 @@ app.get("/health", (req, res) => {
   res.json({ ok: true });
 });
 
+// 🔐 Admin panel to update credentials
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+app.post("/admin/update-credentials", (req, res) => {
+  const { session, csrf, password } = req.body;
+
+  // Simple password protection
+  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+  if (password !== adminPassword) {
+    return res.status(401).json({ success: false, error: "Invalid password" });
+  }
+
+  if (!session || !csrf) {
+    return res.status(400).json({
+      success: false,
+      error: "Session and CSRF token are required",
+    });
+  }
+
+  try {
+    saveCredentials(session, csrf);
+    process.env.LEETCODE_SESSION = session;
+    process.env.CSRF_TOKEN = csrf;
+    res.json({
+      success: true,
+      message: "Credentials updated successfully",
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 function getLastUpdated() {
   try {
     const stats = fs.statSync("data.json");
@@ -115,4 +169,10 @@ startScheduler();
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Dashboard running on port ${PORT}`);
   console.log(`📊 Local URL: http://localhost:${PORT}`);
+  console.log(`🔐 Admin panel: http://localhost:${PORT}/admin`);
 });
+
+module.exports = {
+  getCredentials,
+  saveCredentials,
+};

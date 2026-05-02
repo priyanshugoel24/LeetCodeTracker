@@ -6,9 +6,26 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const LEETCODE_URL = "https://leetcode.com/graphql/";
-const SESSION = process.env.LEETCODE_SESSION;
-const CSRF = process.env.CSRF_TOKEN;
-const COOKIE = `LEETCODE_SESSION=${SESSION}; csrftoken=${CSRF}`;
+
+function getCredentials() {
+  try {
+    if (fs.existsSync(".credentials.json")) {
+      const creds = JSON.parse(fs.readFileSync(".credentials.json", "utf-8"));
+      return { session: creds.session, csrf: creds.csrf };
+    }
+  } catch (err) {
+    console.warn("Could not read credentials file, using env vars");
+  }
+  return {
+    session: process.env.LEETCODE_SESSION || "",
+    csrf: process.env.CSRF_TOKEN || "",
+  };
+}
+
+function getCookie() {
+  const creds = getCredentials();
+  return `LEETCODE_SESSION=${creds.session}; csrftoken=${creds.csrf}`;
+}
 
 const query = `
 query problemsetQuestionListV2($filters: QuestionFilterInput, $limit: Int, $searchKeyword: String, $skip: Int, $sortBy: QuestionSortByInput, $categorySlug: String) {
@@ -46,8 +63,8 @@ async function fetchProblems(skip) {
       Origin: "https://leetcode.com",
       Referer: "https://leetcode.com/problemset/",
       "User-Agent": "Mozilla/5.0",
-      Cookie: COOKIE,
-      "x-csrftoken": CSRF,
+      Cookie: getCookie(),
+      "x-csrftoken": getCredentials().csrf,
     },
     body: JSON.stringify({
       operationName: "problemsetQuestionListV2",

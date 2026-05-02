@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeetCode Tracker - Admin</title>
+  <style>
+    body {
+      font-family: Inter, system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .admin-panel {
+      background: white;
+      border-radius: 24px;
+      padding: 40px;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    }
+    h1 {
+      margin-bottom: 30px;
+      color: #1f2937;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #4b5563;
+      font-weight: 500;
+      font-size: 0.95em;
+    }
+    textarea,
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      font-family: monospace;
+      font-size: 0.9em;
+      box-sizing: border-box;
+    }
+    input[type="password"] {
+      font-family: system-ui;
+      letter-spacing: 1px;
+    }
+    textarea:focus,
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+    .message {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 12px;
+      text-align: center;
+      display: none;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      display: block;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      display: block;
+    }
+    .hint {
+      font-size: 0.85em;
+      color: #6b7280;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-panel">
+    <h1>🔐 Update Credentials</h1>
+    <form id="credForm">
+      <div class="form-group">
+        <label for="session">LEETCODE_SESSION</label>
+        <textarea id="session" placeholder="Paste your LEETCODE_SESSION cookie here" required></textarea>
+        <div class="hint">From LeetCode DevTools → Application → Cookies</div>
+      </div>
+      <div class="form-group">
+        <label for="csrf">CSRF_TOKEN</label>
+        <textarea id="csrf" placeholder="Paste your csrftoken cookie here" required></textarea>
+      </div>
+      <div class="form-group">
+        <label for="password">Admin Password</label>
+        <input type="password" id="password" placeholder="Enter admin password" required />
+        <div class="hint">Default: admin123 (change via ADMIN_PASSWORD env var)</div>
+      </div>
+      <button type="submit">Update Credentials</button>
+    </form>
+    <div id="message" class="message"></div>
+  </div>
+
+  <script>
+    document.getElementById("credForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const session = document.getElementById("session").value.trim();
+      const csrf = document.getElementById("csrf").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        const res = await fetch("/admin/update-credentials", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session, csrf, password }),
+        });
+
+        const result = await res.json();
+        const msgEl = document.getElementById("message");
+
+        if (result.success) {
+          msgEl.className = "message success";
+          msgEl.textContent = "✅ " + result.message;
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 2000);
+        } else {
+          msgEl.className = "message error";
+          msgEl.textContent = "❌ " + result.error;
+        }
+      } catch (err) {
+        document.getElementById("message").className = "message error";
+        document.getElementById("message").textContent = "❌ Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>
