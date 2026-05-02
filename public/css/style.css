@@ -399,6 +399,20 @@ tr:hover {
     font-size: 1.5em;
   }
 
+}
+
+/* Dark mode variable overrides when `dark` class is on <html> */
+.dark {
+  --bg: #071029;
+  --surface: rgba(8, 12, 20, 0.75);
+  --surface-strong: #061021;
+  --border: rgba(255, 255, 255, 0.06);
+  --text: #e6eef8;
+  --muted: #9fb0c8;
+  --shadow: none;
+  --accent: #8ab4ff;
+}
+
   .stat-card {
     padding: 15px;
   }

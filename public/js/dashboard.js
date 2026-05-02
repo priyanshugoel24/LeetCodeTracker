@@ -5,6 +5,7 @@ let charts = {};
 document.addEventListener("DOMContentLoaded", () => {
   loadData();
   setupEventListeners();
+  initDarkMode();
 });
 
 function setupEventListeners() {
@@ -13,6 +14,11 @@ function setupEventListeners() {
   document.getElementById("difficultyFilter").addEventListener("change", filterTable);
   document.getElementById("topicFilter").addEventListener("change", filterTable);
   document.getElementById("clearFilters").addEventListener("click", clearFilters);
+  const exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) exportBtn.addEventListener("click", () => exportData("csv"));
+
+  const darkToggle = document.getElementById("darkModeToggle");
+  if (darkToggle) darkToggle.addEventListener("click", toggleDarkMode);
 }
 
 async function loadData() {
@@ -263,6 +269,51 @@ function clearFilters() {
   document.getElementById("difficultyFilter").value = "";
   document.getElementById("topicFilter").value = "";
   filterTable();
+}
+
+async function exportData(format = "csv") {
+  try {
+    const res = await fetch(`/api/export?format=${format}`);
+    if (!res.ok) throw new Error(`Export failed: ${res.statusText}`);
+
+    const blob = await res.blob();
+    // Attempt to read filename from headers
+    const disposition = res.headers.get("content-disposition") || "";
+    let filename = format === "json" ? "leetcode_solved.json" : "leetcode_solved.csv";
+    const match = disposition.match(/filename=("?)([^";]+)\1/);
+    if (match && match[2]) filename = match[2];
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert("Export error: " + err.message);
+  }
+}
+
+function initDarkMode() {
+  const saved = localStorage.getItem("lc-dark-mode");
+  const enabled = saved === "true" || (saved === null && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  if (enabled) document.documentElement.classList.add("dark");
+  updateDarkToggleText();
+}
+
+function toggleDarkMode() {
+  const isDark = document.documentElement.classList.toggle("dark");
+  localStorage.setItem("lc-dark-mode", isDark ? "true" : "false");
+  updateDarkToggleText();
+}
+
+function updateDarkToggleText() {
+  const btn = document.getElementById("darkModeToggle");
+  if (!btn) return;
+  const isDark = document.documentElement.classList.contains("dark");
+  btn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
 }
 
 async function fetchProblems() {

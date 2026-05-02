@@ -100,6 +100,46 @@ app.get("/api/analytics", (req, res) => {
   }
 });
 
+// 🗄️ API: Export problems as CSV or JSON
+app.get("/api/export", (req, res) => {
+  try {
+    const format = (req.query.format || "csv").toLowerCase();
+    const data = fs.readFileSync("data.json", "utf-8");
+    const problems = JSON.parse(data || "[]");
+
+    if (format === "json") {
+      res.setHeader("Content-Disposition", "attachment; filename=leetcode_solved.json");
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      return res.send(JSON.stringify(problems, null, 2));
+    }
+
+    // Default: CSV
+    const headers = ["title", "titleSlug", "difficulty", "acRate", "topics"];
+    const rows = problems.map((p) => {
+      const topics = (p.topicTags || []).map((t) => t.name).join(";");
+      const ac = p.acRate ? (Number(p.acRate) * 100).toFixed(2) + "%" : "";
+      return [
+        String(p.title || "").replace(/"/g, '""'),
+        String(p.titleSlug || "").replace(/"/g, '""'),
+        String(p.difficulty || "").replace(/"/g, '""'),
+        ac,
+        String(topics || "").replace(/"/g, '""'),
+      ];
+    });
+
+    const csvLines = [headers.join(",")].concat(
+      rows.map((r) => r.map((c) => `"${c}"`).join(","))
+    );
+
+    const csv = csvLines.join("\n");
+    res.setHeader("Content-Disposition", "attachment; filename=leetcode_solved.csv");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 🔄 API: Manual fetch
 app.post("/api/fetch", async (req, res) => {
   try {
