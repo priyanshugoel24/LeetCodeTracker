@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LeetCode Tracker Dashboard</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-content">
+          <h1>📊 LeetCode Tracker</h1>
+          <div class="header-actions">
+            <button id="refreshBtn" class="btn btn-primary">🔄 Fetch Now</button>
+            <span id="lastUpdated" class="last-updated"></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Stats Cards -->
+      <section class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalSolved">0</div>
+          <div class="stat-label">Total Solved</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value easy" id="easySolved">0</div>
+          <div class="stat-label">Easy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value medium" id="mediumSolved">0</div>
+          <div class="stat-label">Medium</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value hard" id="hardSolved">0</div>
+          <div class="stat-label">Hard</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avgAcceptance">0%</div>
+          <div class="stat-label">Avg Acceptance</div>
+        </div>
+      </section>
+
+      <!-- Charts -->
+      <section class="charts-section">
+        <div class="chart-container">
+          <h3>Difficulty Distribution</h3>
+          <canvas id="difficultyChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3>Top Topics</h3>
+          <canvas id="topicsChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Filters & Problems List -->
+      <section class="problems-section">
+        <div class="filters">
+          <h3>Problems</h3>
+          <div class="filter-group">
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search problems..."
+              class="search-box"
+            />
+            <select id="difficultyFilter" class="filter-select">
+              <option value="">All Difficulties</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+            <select id="topicFilter" class="filter-select">
+              <option value="">All Topics</option>
+            </select>
+            <button id="clearFilters" class="btn btn-secondary">Clear Filters</button>
+          </div>
+        </div>
+
+        <!-- Problems Table -->
+        <div class="table-container">
+          <table id="problemsTable">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Difficulty</th>
+                <th>Acceptance Rate</th>
+                <th>Topics</th>
+              </tr>
+            </thead>
+            <tbody id="problemsBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+  </body>
+</html>
