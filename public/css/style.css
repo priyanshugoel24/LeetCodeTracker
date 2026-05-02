@@ -238,6 +238,11 @@ body {
   min-width: 150px;
 }
 
+.filter-group input[type="number"] {
+  background: rgba(255,255,255,0.98);
+  color: var(--text);
+}
+
 /* Table */
 .table-container {
   overflow-x: auto;

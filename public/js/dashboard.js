@@ -11,8 +11,14 @@ document.addEventListener("DOMContentLoaded", () => {
 function setupEventListeners() {
   document.getElementById("refreshBtn").addEventListener("click", fetchProblems);
   document.getElementById("searchInput").addEventListener("input", filterTable);
+  const sortSelect = document.getElementById("sortSelect");
+  if (sortSelect) sortSelect.addEventListener("change", filterTable);
   document.getElementById("difficultyFilter").addEventListener("change", filterTable);
   document.getElementById("topicFilter").addEventListener("change", filterTable);
+  const acMin = document.getElementById("acMin");
+  const acMax = document.getElementById("acMax");
+  if (acMin) acMin.addEventListener("input", filterTable);
+  if (acMax) acMax.addEventListener("input", filterTable);
   document.getElementById("clearFilters").addEventListener("click", clearFilters);
   const exportBtn = document.getElementById("exportBtn");
   if (exportBtn) exportBtn.addEventListener("click", () => exportData("csv"));
@@ -217,20 +223,29 @@ function filterTable() {
   const searchTerm = document.getElementById("searchInput").value.toLowerCase();
   const difficulty = document.getElementById("difficultyFilter").value;
   const topic = document.getElementById("topicFilter").value;
+  const sortBy = document.getElementById("sortSelect") ? document.getElementById("sortSelect").value : "";
+  const acMinVal = Number(document.getElementById("acMin").value || "");
+  const acMaxVal = Number(document.getElementById("acMax").value || "");
 
   let filtered = allProblems.filter((p) => {
-    const matchesSearch =
-      p.title.toLowerCase().includes(searchTerm) ||
-      p.titleSlug.toLowerCase().includes(searchTerm);
+    // acceptance rate filter
+    const acPct = p.acRate ? Number(p.acRate) * 100 : 0;
+    if (!Number.isNaN(acMinVal) && acMinVal > 0 && acPct < acMinVal) return false;
+    if (!Number.isNaN(acMaxVal) && acMaxVal > 0 && acPct > acMaxVal) return false;
 
     const matchesDifficulty = !difficulty || p.difficulty === difficulty;
 
-    const matchesTopic =
-      !topic ||
-      (p.topicTags && p.topicTags.some((tag) => tag.name === topic));
+    const matchesTopic = !topic || (p.topicTags && p.topicTags.some((tag) => tag.name === topic));
+
+    // fuzzy-ish search: match title, slug, topic, or tag words
+    const hay = [p.title || "", p.titleSlug || "", ...(p.topicTags || []).map((t) => t.name)].join(" ").toLowerCase();
+    const matchesSearch = fuzzyMatch(hay, searchTerm);
 
     return matchesSearch && matchesDifficulty && matchesTopic;
   });
+
+  // Sorting
+  if (sortBy) filtered = sortProblems(filtered, sortBy);
 
   renderTable(filtered);
 }
@@ -409,6 +424,36 @@ function renderTable(problems) {
         });
       });
     });
+}
+
+// Simple fuzzy match: returns true if all query tokens appear in order in the haystack
+function fuzzyMatch(haystack, query) {
+  if (!query) return true;
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  // split tokens and ensure each token is present
+  const tokens = q.split(/\s+/).filter(Boolean);
+  return tokens.every((t) => haystack.includes(t));
+}
+
+function sortProblems(list, mode) {
+  const copy = [...list];
+  if (mode === "title_asc") {
+    copy.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+  } else if (mode === "difficulty") {
+    const rank = (d) => {
+      if (!d) return 99;
+      const s = String(d).toLowerCase();
+      if (s.includes("easy")) return 1;
+      if (s.includes("medium")) return 2;
+      if (s.includes("hard")) return 3;
+      return 99;
+    };
+    copy.sort((a, b) => rank(a.difficulty) - rank(b.difficulty));
+  } else if (mode === "ac_desc") {
+    copy.sort((a, b) => (Number(b.acRate) || 0) - (Number(a.acRate) || 0));
+  }
+  return copy;
 }
 
 // --- Progress Chart functions ---

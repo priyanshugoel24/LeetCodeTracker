@@ -70,6 +70,12 @@
               placeholder="Search problems..."
               class="search-box"
             />
+            <select id="sortSelect" class="filter-select">
+              <option value="">Sort: Default</option>
+              <option value="title_asc">Title A→Z</option>
+              <option value="difficulty">Difficulty (E→H)</option>
+              <option value="ac_desc">Acceptance ↓</option>
+            </select>
             <select id="difficultyFilter" class="filter-select">
               <option value="">All Difficulties</option>
               <option value="Easy">Easy</option>
@@ -79,6 +85,11 @@
             <select id="topicFilter" class="filter-select">
               <option value="">All Topics</option>
             </select>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <label style="font-size:0.9em; color:var(--muted);">AC%</label>
+              <input id="acMin" type="number" min="0" max="100" placeholder="Min" style="width:72px; padding:8px; border-radius:10px; border:1px solid var(--border);" />
+              <input id="acMax" type="number" min="0" max="100" placeholder="Max" style="width:72px; padding:8px; border-radius:10px; border:1px solid var(--border);" />
+            </div>
             <button id="clearFilters" class="btn btn-secondary">Clear Filters</button>
           </div>
         </div>
