@@ -40,4 +40,6 @@ venv/
 
 ## Misc
 .cache/
+*.db
+*.db-journal
 
