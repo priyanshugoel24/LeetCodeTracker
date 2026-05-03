@@ -2,17 +2,14 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const { startScheduler, fetchProblemsManual } = require("./fetcherService");
+const { normalizeDifficulty, recordSnapshot, getAllProblems } = require("./utils");
+const { initDB, run, query } = require("./db");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const CREDENTIALS_FILE = ".credentials.json";
 const REACT_DIST_DIR = path.join(__dirname, "frontend", "dist");
 const LEGACY_PUBLIC_DIR = path.join(__dirname, "public");
-
-function normalizeDifficulty(value) {
-  if (!value) return "Unknown";
-  return String(value).trim().toUpperCase();
-}
 
 function getCredentials() {
   try {
@@ -43,21 +40,20 @@ if (fs.existsSync(REACT_DIST_DIR)) {
 }
 
 // 📊 API: Get all problems
-app.get("/api/problems", (req, res) => {
+app.get("/api/problems", async (req, res) => {
   try {
-    const data = fs.readFileSync("data.json", "utf-8");
-    const problems = JSON.parse(data);
+    const problems = await getAllProblems();
     res.json(problems);
   } catch (err) {
+    console.error(err);
     res.json([]);
   }
 });
 
 // 📈 API: Get analytics
-app.get("/api/analytics", (req, res) => {
+app.get("/api/analytics", async (req, res) => {
   try {
-    const data = fs.readFileSync("data.json", "utf-8");
-    const problems = JSON.parse(data);
+    const problems = await getAllProblems();
 
     const difficultyCounts = problems.reduce(
       (counts, problem) => {
@@ -83,7 +79,7 @@ app.get("/api/analytics", (req, res) => {
               problems.length
             ).toFixed(2)
           : 0,
-      lastUpdated: getLastUpdated(),
+      lastUpdated: await getLastUpdated(),
     };
 
     // Count by topic
@@ -97,6 +93,7 @@ app.get("/api/analytics", (req, res) => {
 
     res.json(analytics);
   } catch (err) {
+    console.error(err);
     res.json({
       totalSolved: 0,
       byDifficulty: { Easy: 0, Medium: 0, Hard: 0 },
@@ -108,11 +105,10 @@ app.get("/api/analytics", (req, res) => {
 });
 
 // 🗄️ API: Export problems as CSV or JSON
-app.get("/api/export", (req, res) => {
+app.get("/api/export", async (req, res) => {
   try {
     const format = (req.query.format || "csv").toLowerCase();
-    const data = fs.readFileSync("data.json", "utf-8");
-    const problems = JSON.parse(data || "[]");
+    const problems = await getAllProblems();
 
     if (format === "json") {
       res.setHeader("Content-Disposition", "attachment; filename=leetcode_solved.json");
@@ -148,72 +144,66 @@ app.get("/api/export", (req, res) => {
 });
 
 // ✅ Toggle favorite for a problem
-app.post("/api/problem/:slug/favorite", (req, res) => {
+app.post("/api/problem/:slug/favorite", async (req, res) => {
   try {
     const slug = req.params.slug;
-    const data = fs.readFileSync("data.json", "utf-8");
-    const problems = JSON.parse(data || "[]");
-    const idx = problems.findIndex((p) => p.titleSlug === slug);
-    if (idx === -1) return res.status(404).json({ success: false, error: "Problem not found" });
+    const rows = await query("SELECT isInMyFavorites FROM problems WHERE titleSlug = ?", [slug]);
+    if (rows.length === 0) return res.status(404).json({ success: false, error: "Problem not found" });
 
-    problems[idx].isInMyFavorites = !problems[idx].isInMyFavorites;
-    fs.writeFileSync("data.json", JSON.stringify(problems, null, 2));
-    res.json({ success: true, isFavorite: problems[idx].isInMyFavorites });
+    const nextVal = rows[0].isInMyFavorites ? 0 : 1;
+    await run("UPDATE problems SET isInMyFavorites = ? WHERE titleSlug = ?", [nextVal, slug]);
+    res.json({ success: true, isFavorite: !!nextVal });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // 🏷️ Set tags for a problem (replace user's tags)
-app.post("/api/problem/:slug/tags", (req, res) => {
+app.post("/api/problem/:slug/tags", async (req, res) => {
   try {
     const slug = req.params.slug;
     const { tags } = req.body;
     if (!Array.isArray(tags)) return res.status(400).json({ success: false, error: "tags must be an array" });
 
-    const data = fs.readFileSync("data.json", "utf-8");
-    const problems = JSON.parse(data || "[]");
-    const idx = problems.findIndex((p) => p.titleSlug === slug);
-    if (idx === -1) return res.status(404).json({ success: false, error: "Problem not found" });
+    await run("DELETE FROM user_tags WHERE problemSlug = ?", [slug]);
+    for (const t of tags) {
+      const tagStr = String(t).trim();
+      if (tagStr) {
+        await run("INSERT OR IGNORE INTO user_tags (problemSlug, tag) VALUES (?, ?)", [slug, tagStr]);
+      }
+    }
 
-    // store user tags in `userTags` field (array of strings)
-    problems[idx].userTags = tags.map((t) => String(t).trim()).filter(Boolean);
-    fs.writeFileSync("data.json", JSON.stringify(problems, null, 2));
-    res.json({ success: true, userTags: problems[idx].userTags });
+    const updated = await query("SELECT tag FROM user_tags WHERE problemSlug = ?", [slug]);
+    res.json({ success: true, userTags: updated.map(r => r.tag) });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // ➖ Remove a single user tag from a problem
-app.post("/api/problem/:slug/tag/remove", (req, res) => {
+app.post("/api/problem/:slug/tag/remove", async (req, res) => {
   try {
     const slug = req.params.slug;
     const { tag } = req.body;
     if (!tag) return res.status(400).json({ success: false, error: "tag is required" });
 
-    const data = fs.readFileSync("data.json", "utf-8");
-    const problems = JSON.parse(data || "[]");
-    const idx = problems.findIndex((p) => p.titleSlug === slug);
-    if (idx === -1) return res.status(404).json({ success: false, error: "Problem not found" });
-
-    const existing = problems[idx].userTags || [];
-    const updated = existing.filter((t) => t !== tag);
-    problems[idx].userTags = updated;
-    fs.writeFileSync("data.json", JSON.stringify(problems, null, 2));
-    res.json({ success: true, userTags: updated });
+    await run("DELETE FROM user_tags WHERE problemSlug = ? AND tag = ?", [slug, tag]);
+    const updated = await query("SELECT tag FROM user_tags WHERE problemSlug = ?", [slug]);
+    res.json({ success: true, userTags: updated.map(r => r.tag) });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
 // 📈 Progress history: returns recorded snapshots
-app.get("/api/progress", (req, res) => {
+app.get("/api/progress", async (req, res) => {
   try {
-    const file = "progress_history.json";
-    if (!fs.existsSync(file)) return res.json([]);
-    const raw = fs.readFileSync(file, "utf-8");
-    const history = JSON.parse(raw || "[]");
+    const rows = await query("SELECT * FROM progress_history ORDER BY date ASC");
+    const history = rows.map(r => ({
+      date: r.date,
+      total: r.total,
+      byDifficulty: { Easy: r.easy, Medium: r.medium, Hard: r.hard }
+    }));
     res.json(history);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -221,44 +211,12 @@ app.get("/api/progress", (req, res) => {
 });
 
 // 📝 Record a snapshot of current solved count (date, total, byDifficulty)
-app.post("/api/progress/record", (req, res) => {
-  try {
-    const data = fs.readFileSync("data.json", "utf-8");
-    const problems = JSON.parse(data || "[]");
-    const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-    const byDifficulty = problems.reduce((acc, p) => {
-      const d = normalizeDifficulty(p.difficulty);
-      if (d === "EASY") acc.Easy += 1;
-      else if (d === "MEDIUM") acc.Medium += 1;
-      else if (d === "HARD") acc.Hard += 1;
-      return acc;
-    }, { Easy: 0, Medium: 0, Hard: 0 });
-
-    const snapshot = {
-      date,
-      total: problems.length,
-      byDifficulty,
-    };
-
-    const file = "progress_history.json";
-    let history = [];
-    if (fs.existsSync(file)) {
-      history = JSON.parse(fs.readFileSync(file, "utf-8") || "[]");
-      // prevent duplicate date entries
-      if (history.length > 0 && history[history.length - 1].date === date) {
-        history[history.length - 1] = snapshot;
-      } else {
-        history.push(snapshot);
-      }
-    } else {
-      history = [snapshot];
-    }
-
-    fs.writeFileSync(file, JSON.stringify(history, null, 2));
+app.post("/api/progress/record", async (req, res) => {
+  const snapshot = await recordSnapshot();
+  if (snapshot) {
     res.json({ success: true, snapshot });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  } else {
+    res.status(500).json({ success: false, error: "Failed to record snapshot" });
   }
 });
 
@@ -331,22 +289,30 @@ app.get("*", (req, res, next) => {
   return next();
 });
 
-function getLastUpdated() {
+async function getLastUpdated() {
   try {
-    const stats = fs.statSync("data.json");
-    return stats.mtime.toLocaleString();
+    const rows = await query("SELECT MAX(lastUpdated) as last FROM problems");
+    if (rows.length > 0 && rows[0].last) {
+      return new Date(rows[0].last).toLocaleString();
+    }
+    return "Never";
   } catch {
     return "Never";
   }
 }
 
-// Start scheduler on server startup
-startScheduler();
+// Initialize DB and Start scheduler on server startup
+initDB().then(() => {
+  startScheduler();
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Dashboard running on port ${PORT}`);
-  console.log(`📊 Local URL: http://localhost:${PORT}`);
-  console.log(`🔐 Admin panel: http://localhost:${PORT}/admin`);
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`🚀 Dashboard running on port ${PORT}`);
+    console.log(`📊 Local URL: http://localhost:${PORT}`);
+    console.log(`🔐 Admin panel: http://localhost:${PORT}/admin`);
+  });
+}).catch(err => {
+  console.error("❌ Failed to initialize database:", err);
+  process.exit(1);
 });
 
 module.exports = {

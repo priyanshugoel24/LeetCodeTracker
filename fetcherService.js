@@ -2,6 +2,8 @@ const fetch = require("node-fetch");
 const fs = require("fs");
 const cron = require("node-cron");
 const dotenv = require("dotenv");
+const { recordSnapshot } = require("./utils");
+const { run } = require("./db");
 
 dotenv.config();
 
@@ -108,42 +110,63 @@ async function fetchProblems(skip) {
 }
 
 async function fetchProblemsManual() {
-  let allSolved = [];
+  let allFetched = [];
   let skip = 0;
 
-  console.log("🚀 Fetching solved problems...");
+  console.log("🚀 Fetching solved problems from LeetCode...");
 
-  while (true) {
-    const result = await fetchProblems(skip);
-    const questions = result.questions;
+  try {
+    while (true) {
+      const result = await fetchProblems(skip);
+      const questions = result.questions;
 
-    console.log(`Fetched ${questions.length} problems (skip=${skip})`);
-    allSolved.push(...questions);
+      console.log(`Fetched ${questions.length} problems (skip=${skip})`);
+      allFetched.push(...questions);
 
-    if (!result.hasMore) break;
+      if (!result.hasMore) break;
 
-    skip += questions.length;
-    await new Promise((res) => setTimeout(res, 300));
+      skip += questions.length;
+      await new Promise((res) => setTimeout(res, 300));
+    }
+
+    console.log(`\n✅ Total solved problems fetched: ${allFetched.length}`);
+
+    // Update SQLite database
+    for (const q of allFetched) {
+      // Update problem basic info (don't overwrite isInMyFavorites)
+      await run(
+        `INSERT INTO problems (titleSlug, title, difficulty, acRate, status)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(titleSlug) DO UPDATE SET
+           title = excluded.title,
+           difficulty = excluded.difficulty,
+           acRate = excluded.acRate,
+           status = excluded.status,
+           lastUpdated = CURRENT_TIMESTAMP`,
+        [q.titleSlug, q.title, q.difficulty, q.acRate, q.status]
+      );
+
+      // Update topic tags
+      await run("DELETE FROM topic_tags WHERE problemSlug = ?", [q.titleSlug]);
+      for (const tag of q.topicTags) {
+        await run(
+          "INSERT INTO topic_tags (problemSlug, name, slug) VALUES (?, ?, ?)",
+          [q.titleSlug, tag.name, tag.slug]
+        );
+      }
+    }
+
+    console.log("📦 Saved to SQLite database");
+
+    // Record snapshot for progress history
+    await recordSnapshot();
+    console.log("📈 Progress snapshot recorded");
+
+    return allFetched;
+  } catch (err) {
+    console.error("❌ Fetch failed:", err.message);
+    throw err;
   }
-
-  console.log(`\n✅ Total solved problems: ${allSolved.length}`);
-
-  // Save to data.json
-  fs.writeFileSync("data.json", JSON.stringify(allSolved, null, 2));
-
-  // Also save CSV for reference
-  const csv = [
-    "Title,Slug,Difficulty,AcceptanceRate,Topics",
-    ...allSolved.map(
-      (q) =>
-        `"${q.title.replace(/"/g, '""')}",${q.titleSlug},${q.difficulty},${q.acRate},"${q.topicTags
-          .map((t) => t.name)
-          .join("|")}"`
-    ),
-  ].join("\n");
-
-  fs.writeFileSync("leetcode_solved.csv", csv);
-  console.log("📦 Saved: data.json & leetcode_solved.csv");
 }
 
 function startScheduler() {
@@ -152,7 +175,7 @@ function startScheduler() {
     console.log("\n⏰ Daily fetch scheduled...");
     try {
       await fetchProblemsManual();
-      console.log("✅ Daily fetch completed");
+      console.log("✅ Daily fetch and snapshot completed");
     } catch (err) {
       console.error("❌ Daily fetch failed:", err.message);
     }
