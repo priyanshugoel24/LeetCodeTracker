@@ -195,6 +195,18 @@ app.post("/api/problem/:slug/tag/remove", async (req, res) => {
   }
 });
 
+// 📝 Save notes for a problem
+app.post("/api/problem/:slug/notes", async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const { notes } = req.body;
+    await run("UPDATE problems SET notes = ? WHERE titleSlug = ?", [notes, slug]);
+    res.json({ success: true, notes });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 📈 Progress history: returns recorded snapshots
 app.get("/api/progress", async (req, res) => {
   try {

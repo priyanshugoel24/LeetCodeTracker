@@ -16,6 +16,7 @@ function initDB() {
           acRate REAL,
           status TEXT,
           isInMyFavorites INTEGER DEFAULT 0,
+          notes TEXT,
           lastUpdated DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);

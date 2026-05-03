@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Fragment } from "react";
 import {
   Chart as ChartJS,
   ArcElement,
@@ -36,6 +36,8 @@ export default function App() {
   const [analytics, setAnalytics] = useState(defaultAnalytics);
   const [progress, setProgress] = useState([]);
   const [tagDraft, setTagDraft] = useState({});
+  const [expanded, setExpanded] = useState({});
+  const [notesDraft, setNotesDraft] = useState({});
   const [filters, setFilters] = useState({
     q: "",
     difficulty: "",
@@ -167,6 +169,19 @@ export default function App() {
     setProblems((prev) => prev.map((p) => (p.titleSlug === slug ? { ...p, userTags: payload.userTags } : p)));
   }
 
+  async function saveNotes(slug) {
+    const notes = notesDraft[slug];
+    const res = await fetch(`/api/problem/${slug}/notes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ notes }),
+    });
+    const payload = await res.json();
+    if (!payload.success) return;
+    setProblems((prev) => prev.map((p) => (p.titleSlug === slug ? { ...p, notes: payload.notes } : p)));
+    setExpanded((prev) => ({ ...prev, [slug]: false }));
+  }
+
   async function recordSnapshot() {
     await fetch("/api/progress/record", { method: "POST" });
     await loadProgress();
@@ -260,31 +275,61 @@ export default function App() {
                 <th>Difficulty</th>
                 <th>Acceptance Rate</th>
                 <th>Topics / Tags</th>
+                <th>Notes</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((p) => (
-                <tr key={p.titleSlug}>
-                  <td><button className="fav-btn" onClick={() => toggleFavorite(p.titleSlug)}>{p.isInMyFavorites ? "★" : "☆"}</button></td>
-                  <td><strong>{p.title}</strong><div className="subtitle">{p.titleSlug}</div></td>
-                  <td><span className={`pill difficulty-${String(p.difficulty || "").toLowerCase()}`}>{String(p.difficulty || "Unknown")}</span></td>
-                  <td>{(Number(p.acRate || 0) * 100).toFixed(2)}%</td>
-                  <td>
-                    <div className="topics">
-                      {(p.topicTags || []).map((t) => <span key={`${p.titleSlug}-${t.name}`} className="topic-tag">{t.name}</span>)}
-                      {(p.userTags || []).map((t) => (
-                        <span key={`${p.titleSlug}-user-${t}`} className="topic-tag user-tag" onDoubleClick={() => editTag(p.titleSlug, t)}>
-                          {t}
-                          <span className="tag-remove" onClick={() => removeTag(p.titleSlug, t)}>x</span>
-                        </span>
-                      ))}
-                    </div>
-                    <div className="tag-row">
-                      <input className="tag-input" value={tagDraft[p.titleSlug] || ""} placeholder="Add tag" onChange={(e) => setTagDraft((prev) => ({ ...prev, [p.titleSlug]: e.target.value }))} />
-                      <button className="tag-add-btn" onClick={() => addTag(p.titleSlug)}>Add</button>
-                    </div>
-                  </td>
-                </tr>
+                <Fragment key={p.titleSlug}>
+                  <tr>
+                    <td><button className="fav-btn" onClick={() => toggleFavorite(p.titleSlug)}>{p.isInMyFavorites ? "★" : "☆"}</button></td>
+                    <td><strong>{p.title}</strong><div className="subtitle">{p.titleSlug}</div></td>
+                    <td><span className={`pill difficulty-${String(p.difficulty || "").toLowerCase()}`}>{String(p.difficulty || "Unknown")}</span></td>
+                    <td>{(Number(p.acRate || 0) * 100).toFixed(2)}%</td>
+                    <td>
+                      <div className="topics">
+                        {(p.topicTags || []).map((t) => <span key={`${p.titleSlug}-${t.name}`} className="topic-tag">{t.name}</span>)}
+                        {(p.userTags || []).map((t) => (
+                          <span key={`${p.titleSlug}-user-${t}`} className="topic-tag user-tag" onDoubleClick={() => editTag(p.titleSlug, t)}>
+                            {t}
+                            <span className="tag-remove" onClick={() => removeTag(p.titleSlug, t)}>x</span>
+                          </span>
+                        ))}
+                      </div>
+                      <div className="tag-row">
+                        <input className="tag-input" value={tagDraft[p.titleSlug] || ""} placeholder="Add tag" onChange={(e) => setTagDraft((prev) => ({ ...prev, [p.titleSlug]: e.target.value }))} />
+                        <button className="tag-add-btn" onClick={() => addTag(p.titleSlug)}>Add</button>
+                      </div>
+                    </td>
+                    <td>
+                      <button className="btn btn-secondary" onClick={() => {
+                        setExpanded(prev => ({ ...prev, [p.titleSlug]: !prev[p.titleSlug] }));
+                        if (!expanded[p.titleSlug]) setNotesDraft(prev => ({ ...prev, [p.titleSlug]: p.notes || "" }));
+                      }}>
+                        {p.notes ? "📝 Edit" : "➕ Add"}
+                      </button>
+                    </td>
+                  </tr>
+                  {expanded[p.titleSlug] && (
+                    <tr className="expanded-row">
+                      <td colSpan="6">
+                        <div className="notes-editor">
+                          <h4>Solution Notes for {p.title}</h4>
+                          <textarea
+                            className="notes-textarea"
+                            value={notesDraft[p.titleSlug] || ""}
+                            onChange={(e) => setNotesDraft(prev => ({ ...prev, [p.titleSlug]: e.target.value }))}
+                            placeholder="Write your notes here... (complexity, approach, etc.)"
+                          />
+                          <div className="notes-actions">
+                            <button className="btn btn-primary" onClick={() => saveNotes(p.titleSlug)}>Save Notes</button>
+                            <button className="btn btn-secondary" onClick={() => setExpanded(prev => ({ ...prev, [p.titleSlug]: false }))}>Cancel</button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

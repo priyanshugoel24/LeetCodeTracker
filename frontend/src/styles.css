@@ -253,3 +253,40 @@ th:nth-child(4), td:nth-child(4) { width: 12%; }
     width: 100%;
   }
 }
+
+.expanded-row {
+  background: rgba(79, 70, 229, 0.03);
+}
+
+.dark .expanded-row {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.notes-editor {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notes-textarea {
+  width: 100%;
+  min-height: 120px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+.dark .notes-textarea {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.notes-actions {
+  display: flex;
+  gap: 10px;
+}

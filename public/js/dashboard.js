@@ -292,12 +292,77 @@ function renderTable(problems) {
           <button class="tag-add-btn" data-slug="${p.titleSlug}">Add</button>
         </div>
       </td>
+      <td>
+        <button class="btn btn-secondary notes-toggle" data-slug="${p.titleSlug}">
+          ${p.notes ? "📝 Edit" : "➕ Add"}
+        </button>
+      </td>
     `;
 
     tbody.appendChild(row);
+
+    // Notes Row (hidden by default)
+    const notesRow = document.createElement("tr");
+    notesRow.className = "expanded-row";
+    notesRow.id = `notes-${p.titleSlug}`;
+    notesRow.style.display = "none";
+    notesRow.innerHTML = `
+      <td colSpan="6">
+        <div class="notes-editor">
+          <h4>Solution Notes for ${p.title}</h4>
+          <textarea class="notes-textarea" id="textarea-${p.titleSlug}" placeholder="Complexity, approach, etc...">${p.notes || ""}</textarea>
+          <div class="notes-actions">
+            <button class="btn btn-primary notes-save" data-slug="${p.titleSlug}">Save Notes</button>
+            <button class="btn btn-secondary notes-cancel" data-slug="${p.titleSlug}">Cancel</button>
+          </div>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(notesRow);
   });
 
   // Attach event listeners for favorite and tag actions
+  document.querySelectorAll(".notes-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const slug = btn.getAttribute("data-slug");
+      const row = document.getElementById(`notes-${slug}`);
+      row.style.display = row.style.display === "none" ? "table-row" : "none";
+    });
+  });
+
+  document.querySelectorAll(".notes-cancel").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const slug = btn.getAttribute("data-slug");
+      document.getElementById(`notes-${slug}`).style.display = "none";
+    });
+  });
+
+  document.querySelectorAll(".notes-save").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const slug = btn.getAttribute("data-slug");
+      const notes = document.getElementById(`textarea-${slug}`).value;
+      try {
+        const res = await fetch(`/api/problem/${slug}/notes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notes }),
+        });
+        const j = await res.json();
+        if (j.success) {
+          const p = allProblems.find((x) => x.titleSlug === slug);
+          if (p) p.notes = notes;
+          document.getElementById(`notes-${slug}`).style.display = "none";
+          // update button text
+          document.querySelector(`.notes-toggle[data-slug="${slug}"]`).textContent = "📝 Edit";
+        } else {
+          alert(j.error || "Could not save notes");
+        }
+      } catch (err) {
+        alert("Error saving notes: " + err.message);
+      }
+    });
+  });
+
   document.querySelectorAll(".fav-btn").forEach((btn) => {
     btn.addEventListener("click", async (e) => {
       const slug = btn.getAttribute("data-slug");
