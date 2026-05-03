@@ -133,6 +133,7 @@ body {
   border-radius: 12px;
   padding: 10px 12px;
   background: #fff;
+  color: var(--text);
 }
 
 .dark .search-box,
@@ -147,6 +148,14 @@ body {
   overflow-x: auto;
 }
 
+thead {
+  background: rgba(17, 24, 39, 0.04);
+}
+
+.dark thead {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -157,6 +166,7 @@ td {
   border-bottom: 1px solid var(--border);
   text-align: left;
   padding: 12px;
+  color: var(--text);
 }
 
 th:nth-child(1), td:nth-child(1) { width: 56px; }
@@ -190,12 +200,17 @@ th:nth-child(4), td:nth-child(4) { width: 12%; }
 
 .user-tag {
   background: rgba(250, 230, 200, 0.15);
+  color: var(--text);
   cursor: pointer;
+}
+
+.dark .user-tag {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .tag-remove {
   margin-left: 8px;
-  color: #555;
+  color: var(--muted);
 }
 
 .tag-row {

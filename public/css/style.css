@@ -277,7 +277,7 @@ th {
 td {
   padding: 15px;
   border-bottom: 1px solid var(--border);
-  color: #4b5563;
+  color: var(--text);
 }
 
 tr:hover {
@@ -348,7 +348,7 @@ tr:hover {
 
 .tag-remove {
   margin-left: 8px;
-  color: rgba(0,0,0,0.4);
+  color: var(--muted);
   padding-left: 8px;
   cursor: pointer;
 }
@@ -363,6 +363,8 @@ tr:hover {
   padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text);
 }
 
 .tag-add-btn {
@@ -380,13 +382,13 @@ tr:hover {
 .loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--muted);
 }
 
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: #999;
+  color: var(--muted);
 }
 
 /* Responsive */
@@ -449,6 +451,21 @@ tr:hover {
     font-size: 1.5em;
   }
 
+  .stat-card {
+    padding: 15px;
+  }
+
+  .stat-value {
+    font-size: 1.8em;
+  }
+
+  .problems-section {
+    padding: 15px;
+  }
+
+  table {
+    font-size: 0.85em;
+  }
 }
 
 /* Dark mode variable overrides when `dark` class is on <html> */
@@ -475,26 +492,39 @@ tr:hover {
 }
 
 .dark th {
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark thead {
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .dark tr:hover {
   background: rgba(255,255,255,0.02);
 }
 
-  .stat-card {
-    padding: 15px;
-  }
-
-  .stat-value {
-    font-size: 1.8em;
-  }
-
-  .problems-section {
-    padding: 15px;
-  }
-
-  table {
-    font-size: 0.85em;
-  }
+.dark .search-box,
+.dark .filter-select,
+.dark .tag-input,
+.dark .filter-group input[type="number"] {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  border-color: var(--border);
 }
+
+.dark .pill {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .topic-tag {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dark .user-tag {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dark .tag-remove {
+  color: var(--muted);
+}
+
