@@ -222,9 +222,38 @@ export default function App() {
               aria-label={isDarkMode ? "Switch to light theme" : "Switch to dark theme"}
               title={isDarkMode ? "Switch to light theme" : "Switch to dark theme"}
             >
-              <span aria-hidden="true" className="theme-icon">
-                {isDarkMode ? "☀" : "☾"}
-              </span>
+              {isDarkMode ? (
+                <svg
+                  aria-hidden="true"
+                  className="theme-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M12 3.75V5.5M12 18.5V20.25M5.64 5.64L6.87 6.87M17.13 17.13L18.36 18.36M3.75 12H5.5M18.5 12H20.25M5.64 18.36L6.87 17.13M17.13 6.87L18.36 5.64"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                  <circle cx="12" cy="12" r="4.75" stroke="currentColor" strokeWidth="1.8" />
+                </svg>
+              ) : (
+                <svg
+                  aria-hidden="true"
+                  className="theme-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M21 14.25A8.25 8.25 0 1 1 9.75 3a6.75 6.75 0 0 0 11.25 11.25Z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
             </button>
             <span className="last-updated">Last updated: {analytics.lastUpdated || "Never"}</span>
           </div>
