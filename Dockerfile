@@ -3,9 +3,13 @@ FROM node:20-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --omit=dev
+COPY frontend/package*.json ./frontend/
+
+RUN npm ci --omit=dev
+RUN npm ci --prefix frontend
 
 COPY . .
+RUN npm run client:build
 
 ENV NODE_ENV=production
 ENV PORT=3000
