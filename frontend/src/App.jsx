@@ -297,7 +297,17 @@ export default function App() {
                 <Fragment key={p.titleSlug}>
                   <tr>
                     <td><button className="fav-btn" onClick={() => toggleFavorite(p.titleSlug)}>{p.isInMyFavorites ? "★" : "☆"}</button></td>
-                    <td><strong>{p.title}</strong><div className="subtitle">{p.titleSlug}</div></td>
+                    <td>
+                      <a
+                        href={`https://leetcode.com/problems/${p.titleSlug}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="problem-link"
+                      >
+                        <strong>{p.title}</strong>
+                      </a>
+                      <div className="subtitle">{p.titleSlug}</div>
+                    </td>
                     <td><span className={`pill difficulty-${String(p.difficulty || "").toLowerCase()}`}>{String(p.difficulty || "Unknown")}</span></td>
                     <td>{(Number(p.acRate || 0) * 100).toFixed(2)}%</td>
                     <td>
