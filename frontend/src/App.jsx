@@ -45,6 +45,7 @@ export default function App() {
     sort: "",
     acMin: "",
     acMax: "",
+    revisionOnly: false,
   });
 
   useEffect(() => {
@@ -83,7 +84,8 @@ export default function App() {
       const ac = Number(p.acRate || 0) * 100;
       const minOk = !filters.acMin || ac >= Number(filters.acMin);
       const maxOk = !filters.acMax || ac <= Number(filters.acMax);
-      return queryOk && difficultyOk && topicOk && minOk && maxOk;
+      const revisionOk = !filters.revisionOnly || p.needsReview;
+      return queryOk && difficultyOk && topicOk && minOk && maxOk && revisionOk;
     });
 
     if (filters.sort === "title_asc") list.sort((a, b) => a.title.localeCompare(b.title));
@@ -182,6 +184,13 @@ export default function App() {
     setExpanded((prev) => ({ ...prev, [slug]: false }));
   }
 
+  async function toggleReview(slug) {
+    const res = await fetch(`/api/problem/${slug}/review`, { method: "POST" });
+    const payload = await res.json();
+    if (!payload.success) return;
+    setProblems((prev) => prev.map((p) => (p.titleSlug === slug ? { ...p, needsReview: payload.needsReview, nextReviewDate: payload.nextReviewDate } : p)));
+  }
+
   async function recordSnapshot() {
     await fetch("/api/progress/record", { method: "POST" });
     await loadProgress();
@@ -262,7 +271,11 @@ export default function App() {
             </select>
             <input type="number" min="0" max="100" className="filter-select" placeholder="AC min" value={filters.acMin} onChange={(e) => setFilters((f) => ({ ...f, acMin: e.target.value }))} />
             <input type="number" min="0" max="100" className="filter-select" placeholder="AC max" value={filters.acMax} onChange={(e) => setFilters((f) => ({ ...f, acMax: e.target.value }))} />
-            <button className="btn btn-secondary" onClick={() => setFilters({ q: "", difficulty: "", topic: "", sort: "", acMin: "", acMax: "" })}>Clear Filters</button>
+            <label className="checkbox-label">
+              <input type="checkbox" checked={filters.revisionOnly} onChange={(e) => setFilters((f) => ({ ...f, revisionOnly: e.target.checked }))} />
+              Needs Review
+            </label>
+            <button className="btn btn-secondary" onClick={() => setFilters({ q: "", difficulty: "", topic: "", sort: "", acMin: "", acMax: "", revisionOnly: false })}>Clear Filters</button>
           </div>
         </div>
 
@@ -275,6 +288,7 @@ export default function App() {
                 <th>Difficulty</th>
                 <th>Acceptance Rate</th>
                 <th>Topics / Tags</th>
+                <th>Review</th>
                 <th>Notes</th>
               </tr>
             </thead>
@@ -302,6 +316,16 @@ export default function App() {
                       </div>
                     </td>
                     <td>
+                      <button className={`btn ${p.needsReview ? "btn-review-active" : "btn-secondary"}`} onClick={() => toggleReview(p.titleSlug)}>
+                        {p.needsReview ? "🚩 Review" : "🏳️ Mark"}
+                      </button>
+                      {p.needsReview && p.nextReviewDate && (
+                        <div className={`review-date ${new Date(p.nextReviewDate) < new Date() ? "overdue" : ""}`}>
+                          {new Date(p.nextReviewDate).toLocaleDateString()}
+                        </div>
+                      )}
+                    </td>
+                    <td>
                       <button className="btn btn-secondary" onClick={() => {
                         setExpanded(prev => ({ ...prev, [p.titleSlug]: !prev[p.titleSlug] }));
                         if (!expanded[p.titleSlug]) setNotesDraft(prev => ({ ...prev, [p.titleSlug]: p.notes || "" }));
@@ -312,7 +336,7 @@ export default function App() {
                   </tr>
                   {expanded[p.titleSlug] && (
                     <tr className="expanded-row">
-                      <td colSpan="6">
+                      <td colSpan="7">
                         <div className="notes-editor">
                           <h4>Solution Notes for {p.title}</h4>
                           <textarea

@@ -290,3 +290,28 @@ th:nth-child(4), td:nth-child(4) { width: 12%; }
   display: flex;
   gap: 10px;
 }
+
+.btn-review-active {
+  background: #f03e3e;
+  color: white;
+}
+
+.review-date {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.review-date.overdue {
+  color: #f03e3e;
+  font-weight: bold;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+  color: var(--text);
+  cursor: pointer;
+}

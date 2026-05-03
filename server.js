@@ -207,6 +207,34 @@ app.post("/api/problem/:slug/notes", async (req, res) => {
   }
 });
 
+// 🔁 Toggle review status for a problem
+app.post("/api/problem/:slug/review", async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    const { days } = req.body; // optional: how many days until next review
+    const rows = await query("SELECT needsReview FROM problems WHERE titleSlug = ?", [slug]);
+    if (rows.length === 0) return res.status(404).json({ success: false, error: "Problem not found" });
+
+    const nextState = rows[0].needsReview ? 0 : 1;
+    let nextDate = null;
+    if (nextState && days) {
+      nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + days);
+      nextDate = nextDate.toISOString();
+    } else if (nextState) {
+      // default: 7 days
+      nextDate = new Date();
+      nextDate.setDate(nextDate.getDate() + 7);
+      nextDate = nextDate.toISOString();
+    }
+
+    await run("UPDATE problems SET needsReview = ?, nextReviewDate = ? WHERE titleSlug = ?", [nextState, nextDate, slug]);
+    res.json({ success: true, needsReview: !!nextState, nextReviewDate: nextDate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // 📈 Progress history: returns recorded snapshots
 app.get("/api/progress", async (req, res) => {
   try {
@@ -245,10 +273,11 @@ app.post("/api/fetch", async (req, res) => {
 
 // 📄 Main dashboard
 app.get("/", (req, res) => {
-  if (fs.existsSync(path.join(REACT_DIST_DIR, "index.html"))) {
-    return res.sendFile(path.join(REACT_DIST_DIR, "index.html"));
+  const indexPath = path.join(REACT_DIST_DIR, "index.html");
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
   }
-  return res.sendFile(path.join(LEGACY_PUBLIC_DIR, "index.html"));
+  res.status(404).send("Frontend not built. Please run 'npm run build' first.");
 });
 
 app.get("/health", (req, res) => {

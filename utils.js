@@ -47,6 +47,8 @@ async function getAllProblems() {
   return problems.map(p => ({
     ...p,
     isInMyFavorites: !!p.isInMyFavorites,
+    needsReview: !!p.needsReview,
+    nextReviewDate: p.nextReviewDate,
     topicTags: topicTags.filter(t => t.problemSlug === p.titleSlug).map(t => ({ name: t.name, slug: t.slug })),
     userTags: userTags.filter(t => t.problemSlug === p.titleSlug).map(t => t.tag)
   }));

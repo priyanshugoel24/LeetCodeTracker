@@ -17,6 +17,8 @@ function initDB() {
           status TEXT,
           isInMyFavorites INTEGER DEFAULT 0,
           notes TEXT,
+          needsReview INTEGER DEFAULT 0,
+          nextReviewDate DATETIME,
           lastUpdated DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
