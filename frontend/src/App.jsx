@@ -35,6 +35,7 @@ export default function App() {
   const [problems, setProblems] = useState([]);
   const [analytics, setAnalytics] = useState(defaultAnalytics);
   const [progress, setProgress] = useState([]);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [tagDraft, setTagDraft] = useState({});
   const [expanded, setExpanded] = useState({});
   const [notesDraft, setNotesDraft] = useState({});
@@ -50,7 +51,9 @@ export default function App() {
 
   useEffect(() => {
     const saved = localStorage.getItem("lc-dark-mode");
-    if (saved === "true") document.documentElement.classList.add("dark");
+    const nextIsDark = saved === "true";
+    setIsDarkMode(nextIsDark);
+    if (nextIsDark) document.documentElement.classList.add("dark");
     loadAll();
     loadProgress();
   }, []);
@@ -117,6 +120,7 @@ export default function App() {
 
   function toggleDark() {
     const isDark = document.documentElement.classList.toggle("dark");
+    setIsDarkMode(isDark);
     localStorage.setItem("lc-dark-mode", isDark ? "true" : "false");
   }
 
@@ -200,6 +204,9 @@ export default function App() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8);
 
+  const chartTextColor = isDarkMode ? "#dbe7f5" : "#475569";
+  const chartGridColor = isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(15, 23, 42, 0.08)";
+
   return (
     <div className="container">
       <header className="header">
@@ -209,7 +216,16 @@ export default function App() {
             <button className="btn btn-primary" onClick={fetchNow}>Fetch Now</button>
             <a className="btn btn-secondary" href="/admin">Update Credentials</a>
             <button className="btn btn-secondary" onClick={() => exportData("csv")}>Export CSV</button>
-            <button className="btn btn-secondary" onClick={toggleDark}>Toggle Theme</button>
+            <button
+              className="btn btn-secondary icon-btn"
+              onClick={toggleDark}
+              aria-label={isDarkMode ? "Switch to light theme" : "Switch to dark theme"}
+              title={isDarkMode ? "Switch to light theme" : "Switch to dark theme"}
+            >
+              <span aria-hidden="true" className="theme-icon">
+                {isDarkMode ? "☀" : "☾"}
+              </span>
+            </button>
             <span className="last-updated">Last updated: {analytics.lastUpdated || "Never"}</span>
           </div>
         </div>
@@ -243,7 +259,25 @@ export default function App() {
               labels: topTopics.map((t) => t[0]),
               datasets: [{ label: "Problems", data: topTopics.map((t) => t[1]), backgroundColor: "rgba(47, 158, 68, 0.78)" }],
             }}
-            options={{ indexAxis: "y", plugins: { legend: { display: false } } }}
+            options={{
+              indexAxis: "y",
+              plugins: {
+                legend: {
+                  display: false,
+                  labels: { color: chartTextColor },
+                },
+              },
+              scales: {
+                x: {
+                  ticks: { color: chartTextColor },
+                  grid: { color: chartGridColor },
+                },
+                y: {
+                  ticks: { color: chartTextColor },
+                  grid: { color: chartGridColor },
+                },
+              },
+            }}
           />
         </div>
       </section>
